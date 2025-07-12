@@ -1,7 +1,7 @@
 {
 	"name": "app",
 	"version": "1.0.50",
-	"module": "src/index.js",
+	"module": "src/index.ts",
 	"dependencies": {
 		"@daytonaio/sdk": "^0.22.1",
 		"@t3-oss/env-core": "^0.13.8",
@@ -11,8 +11,11 @@
 		"zod": "^3.25.64"
 	},
 	"scripts": {
-		"dev": "bunx convex dev",
-		"lint": "prettier --check '**/*' --ignore-unknown && eslint --ext .ts,.tsx ./app",
+		"dev": "bun --watch src/index.ts",
+		"build": "bun build src/index.ts --target bun --outdir ./dist",
+		"start": "NODE_ENV=production bun dist/index.js",
+		"test": "bun test",
+		"lint": "prettier --check '**/*' --ignore-unknown && eslint --ext .ts,.tsx ./src",
 		"format": "prettier --write '**/*' --ignore-unknown"
 	},
 	"devDependencies": {

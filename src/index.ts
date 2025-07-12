@@ -1,0 +1,54 @@
+import { Elysia, t } from 'elysia';
+import { executeCode } from './daytona-service';
+import { env } from './env';
+
+const app = new Elysia()
+	.get('/', () => ({
+		message: 'Daytona Code Execution API',
+		version: '1.0.0',
+		endpoints: {
+			'/execute': 'POST - Execute code in Daytona sandbox',
+		},
+	}))
+	.post(
+		'/execute',
+		async ({ body, set }) => {
+			try {
+				const { code } = body;
+
+				if (!code || typeof code !== 'string') {
+					set.status = 400;
+					return 'Code parameter is required and must be a string';
+				}
+
+				const result = await executeCode(code);
+
+				set.headers['content-type'] = 'text/plain';
+
+				return result;
+				//
+			} catch (error) {
+				//
+				console.error('Code execution error:', error);
+
+				set.status = 500;
+				set.headers['content-type'] = 'text/plain';
+
+				return error instanceof Error ? error.message : 'Unknown error occurred';
+			}
+		},
+		{
+			body: t.Object({
+				code: t.String({ description: 'The code to execute in the sandbox' }),
+			}),
+			response: {
+				200: t.String({ description: 'Execution result' }),
+				400: t.String({ description: 'Bad request error' }),
+				500: t.String({ description: 'Server error' }),
+			},
+		},
+	);
+
+console.log(`🦊 Elysia is running at http://localhost:${env.PORT}`);
+
+export default app;
