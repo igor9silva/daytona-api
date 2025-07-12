@@ -3,6 +3,7 @@ import { executeCode } from './daytona-service';
 import { env } from './env';
 
 const app = new Elysia()
+	.use(authMiddleware)
 	.get('/', () => ({
 		message: 'Daytona Code Execution API',
 		version: '1.0.0',
@@ -56,6 +57,22 @@ function createExecuteEndpoint(language: 'typescript' | 'python') {
 	);
 }
 
-console.log(`🦊 Elysia is running at http://localhost:${env.PORT}`);
+function authMiddleware(app: Elysia) {
+	//
+	return app.derive(({ headers, set }) => {
+		//
+		const apiKey = headers['x-api-key'] || headers['authorization']?.replace('Bearer ', '');
+
+		if (!apiKey || apiKey !== env.API_KEY) {
+			set.status = 401;
+			set.headers['content-type'] = 'text/plain';
+			throw new Error('Unauthorized');
+		}
+
+		return {};
+	});
+}
+
+console.info(`🦊 Elysia is running at http://localhost:${env.PORT}`);
 
 export default app;

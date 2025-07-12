@@ -7,6 +7,7 @@ A lightweight API server built with **Elysia** and **Bun** that provides code ex
 - **Fast Runtime**: Built with Bun for maximum performance
 - **Type-Safe**: Full TypeScript support with Elysia
 - **Code Execution**: Execute TypeScript and Python code securely in Daytona sandboxes
+- **API Key Authentication**: Simple and secure API key-based authentication
 - **Timeout Protection**: Configurable execution timeout (default: 60 seconds)
 - **Docker Ready**: Lightweight multi-stage Docker build
 - **Production Ready**: Optimized for deployment on Railway, Fly.io, etc.
@@ -19,17 +20,23 @@ A lightweight API server built with **Elysia** and **Bun** that provides code ex
 ## 🛠️ Setup
 
 1. **Install dependencies**:
-   ```bash
-   bun install
-   ```
+```bash
+bun install
+```
 
-2. **Configure environment variables**:
-   Copy your Daytona API key to `.env.local`:
-   ```bash
-   DAYTONA_API_KEY=your_daytona_api_key_here
-   PORT=4000  # Optional, defaults to 4000
-   EXECUTION_TIMEOUT_SECONDS=60  # Optional, defaults to 60
-   ```
+2. **Generate an API key**:
+```bash
+bun -e "console.log(crypto.randomUUID().replaceAll('-', '').slice(0, 32))"
+```
+
+3. **Configure environment variables**:
+Copy your Daytona API key and set up authentication to `.env.local`:
+```bash
+DAYTONA_API_KEY=your_daytona_api_key_here
+API_KEY=your_generated_api_key_here  # Required for authentication
+PORT=4000  # Optional, defaults to 4000
+EXECUTION_TIMEOUT_SECONDS=60  # Optional, defaults to 60
+```
 
 ## 🏃 Development
 
@@ -61,10 +68,24 @@ docker build -t daytona-api .
 
 Run the container:
 ```bash
-docker run -p 4000:4000 -e DAYTONA_API_KEY=your_api_key daytona-api
+docker run -p 4000:4000 -e DAYTONA_API_KEY=your_api_key -e API_KEY=your_api_key daytona-api
+```
+
+## 🔐 Authentication
+
+All API endpoints require authentication using an API key. Include the API key in your requests using either:
+
+- **Header**: `X-API-Key: your_api_key_here`
+- **Authorization Header**: `Authorization: Bearer your_api_key_here`
+
+**Example**:
+```bash
+curl -H "X-API-Key: YOUR_API_KEY" http://localhost:4000/
 ```
 
 ## 📡 API Endpoints
+
+**Note: All endpoints require authentication using an API key.**
 
 ### `GET /`
 Health check endpoint that returns API information.
@@ -114,6 +135,7 @@ Execute Python code in a Daytona sandbox.
 ```bash
 curl -X POST http://localhost:4000/execute/typescript \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -d '{"code": "console.log(\"Hello from TypeScript!\")"}'
 # Output: Hello from TypeScript!
 ```
@@ -122,6 +144,7 @@ curl -X POST http://localhost:4000/execute/typescript \
 ```bash
 curl -X POST http://localhost:4000/execute/python \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -d '{"code": "print(\"Hello from Python!\")"}'
 # Output: Hello from Python!
 ```
@@ -130,6 +153,7 @@ curl -X POST http://localhost:4000/execute/python \
 ```bash
 curl -X POST http://localhost:4000/execute/typescript \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -d '{"code": "console.log({name: \"test\", value: 42}); console.table([{a: 1, b: 2}])"}'
 # Output:
 # { name: 'test', value: 42 }
@@ -144,6 +168,7 @@ curl -X POST http://localhost:4000/execute/typescript \
 ```bash
 curl -X POST http://localhost:4000/execute/python \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -d '{"code": "print(\"First line\"); print(\"Second line\"); print(f\"Math: {2 + 2}\")"}'
 # Output:
 # First line
@@ -155,6 +180,7 @@ curl -X POST http://localhost:4000/execute/python \
 ```bash
 curl -X POST http://localhost:4000/execute/typescript \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -d '{"code": "invalidSyntax("}'
 # Output: [eval].ts(1,13): error TS1005: ')' expected.
 ```
@@ -163,6 +189,7 @@ curl -X POST http://localhost:4000/execute/typescript \
 ```bash
 curl -X POST http://localhost:4000/execute/python \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
   -d '{"code": "print(undefined_variable)"}'
 # Output: NameError: name 'undefined_variable' is not defined
 ```

@@ -10,6 +10,7 @@ export const env = createEnv({
 		PORT: z.coerce.number().default(4000).describe('Server port.'),
 		DAYTONA_API_KEY: z.string().min(1).describe('Daytona API key.'),
 		EXECUTION_TIMEOUT_SECONDS: z.coerce.number().default(60).describe('Code execution timeout in seconds.'),
+		API_KEY: z.string().min(1).describe('API key for authentication.'),
 	},
 
 	/**
