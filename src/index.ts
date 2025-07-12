@@ -3,50 +3,48 @@ import { executeCode } from './daytona-service';
 import { env } from './env';
 
 const app = new Elysia()
+	.onError(({ code, error, set }) => {
+		//
+		if (code === 'VALIDATION') {
+			set.status = 400;
+			set.headers['content-type'] = 'text/plain';
+			return 'Invalid request: Please provide valid "code" (string) and "language" ("typescript" or "python") parameters';
+		}
+
+		set.status = 500;
+		set.headers['content-type'] = 'text/plain';
+		return error instanceof Error ? error.message : 'Unknown error occurred';
+	})
 	.use(authMiddleware)
 	.get('/', () => ({
 		message: 'Daytona Code Execution API',
 		version: '1.0.0',
 		endpoints: {
-			'/execute/typescript': 'POST - Execute TypeScript code in Daytona sandbox',
-			'/execute/python': 'POST - Execute Python code in Daytona sandbox',
+			'/execute': 'POST - Execute TypeScript or Python code in Daytona sandbox',
 		},
 	}))
-	.use(createExecuteEndpoint('typescript'))
-	.use(createExecuteEndpoint('python'));
-
-function createExecuteEndpoint(language: 'typescript' | 'python') {
-	//
-	return new Elysia().post(
-		`/execute/${language}`,
+	.post(
+		'/execute',
 		async ({ body, set }) => {
 			//
-			try {
-				//
-				const { code } = body as { code: string };
+			const { code, language } = body;
+			const result = await executeCode(code, language);
 
-				if (!code || typeof code !== 'string') {
-					set.status = 400;
-					return 'Code parameter is required and must be a string';
-				}
-
-				const result = await executeCode(code, language);
-
-				set.headers['content-type'] = 'text/plain';
-				return result;
-				//
-			} catch (error) {
-				//
-				console.error(`${language} execution error:`, error);
-
-				set.status = 500;
-				set.headers['content-type'] = 'text/plain';
-				return error instanceof Error ? error.message : 'Unknown error occurred';
-			}
+			set.headers['content-type'] = 'text/plain';
+			return result;
 		},
 		{
 			body: t.Object({
-				code: t.String({ description: `The ${language} code to execute in the sandbox` }),
+				code: t.String({
+					description: 'The code to execute in the sandbox',
+				}),
+				language: t.Union(
+					[
+						t.Literal('typescript'), //
+						t.Literal('python'),
+					],
+					{ description: 'The programming language to execute (typescript or python)' },
+				),
 			}),
 			response: {
 				200: t.String({ description: 'Execution result' }),
@@ -55,7 +53,6 @@ function createExecuteEndpoint(language: 'typescript' | 'python') {
 			},
 		},
 	);
-}
 
 function authMiddleware(app: Elysia) {
 	//

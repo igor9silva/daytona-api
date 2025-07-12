@@ -96,24 +96,25 @@ Health check endpoint that returns API information.
   "message": "Daytona Code Execution API",
   "version": "1.0.0",
   "endpoints": {
-    "/execute/typescript": "POST - Execute TypeScript code in Daytona sandbox",
-    "/execute/python": "POST - Execute Python code in Daytona sandbox"
+    "/execute": "POST - Execute TypeScript or Python code in Daytona sandbox"
   }
 }
 ```
 
-### `POST /execute/typescript`
-Execute TypeScript code in a Daytona sandbox.
+### `POST /execute`
+Execute TypeScript or Python code in a Daytona sandbox.
 
-### `POST /execute/python`
-Execute Python code in a Daytona sandbox.
-
-**Request Body** (same for both endpoints):
+**Request Body**:
 ```json
 {
-  "code": "console.log('Hello World')"
+  "code": "console.log('Hello World')",
+  "language": "typescript"
 }
 ```
+
+**Parameters**:
+- `code` (string, required): The code to execute in the sandbox
+- `language` (string, required): The programming language - either `"typescript"` or `"python"`
 
 **Response Format**:
 - **Success (200)**: Returns the execution output as plain text
@@ -133,28 +134,28 @@ Execute Python code in a Daytona sandbox.
 
 *TypeScript execution:*
 ```bash
-curl -X POST http://localhost:4000/execute/typescript \
+curl -X POST http://localhost:4000/execute \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
-  -d '{"code": "console.log(\"Hello from TypeScript!\")"}'
+  -d '{"code": "console.log(\"Hello from TypeScript!\")", "language": "typescript"}'
 # Output: Hello from TypeScript!
 ```
 
 *Python execution:*
 ```bash
-curl -X POST http://localhost:4000/execute/python \
+curl -X POST http://localhost:4000/execute \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
-  -d '{"code": "print(\"Hello from Python!\")"}'
+  -d '{"code": "print(\"Hello from Python!\")", "language": "python"}'
 # Output: Hello from Python!
 ```
 
-*TypeScript with objects:*
+*TypeScript with objects and console.table:*
 ```bash
-curl -X POST http://localhost:4000/execute/typescript \
+curl -X POST http://localhost:4000/execute \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
-  -d '{"code": "console.log({name: \"test\", value: 42}); console.table([{a: 1, b: 2}])"}'
+  -d '{"code": "console.log({name: \"test\", value: 42}); console.table([{a: 1, b: 2}])", "language": "typescript"}'
 # Output:
 # { name: 'test', value: 42 }
 # ┌─────────┬───┬───┐
@@ -164,34 +165,43 @@ curl -X POST http://localhost:4000/execute/typescript \
 # └─────────┴───┴───┘
 ```
 
-*Python with multiple prints:*
+*Python with multiple prints and math:*
 ```bash
-curl -X POST http://localhost:4000/execute/python \
+curl -X POST http://localhost:4000/execute \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
-  -d '{"code": "print(\"First line\"); print(\"Second line\"); print(f\"Math: {2 + 2}\")"}'
+  -d '{"code": "import math\nprint(\"First line\")\nprint(f\"Pi: {math.pi}\")\nprint(f\"Math: {2 + 2}\")", "language": "python"}'
 # Output:
 # First line
-# Second line
+# Pi: 3.141592653589793
 # Math: 4
 ```
 
 *Error handling (TypeScript):*
 ```bash
-curl -X POST http://localhost:4000/execute/typescript \
+curl -X POST http://localhost:4000/execute \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
-  -d '{"code": "invalidSyntax("}'
+  -d '{"code": "invalidSyntax(", "language": "typescript"}'
 # Output: [eval].ts(1,13): error TS1005: ')' expected.
 ```
 
 *Error handling (Python):*
 ```bash
-curl -X POST http://localhost:4000/execute/python \
+curl -X POST http://localhost:4000/execute \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_API_KEY" \
-  -d '{"code": "print(undefined_variable)"}'
+  -d '{"code": "print(undefined_variable)", "language": "python"}'
 # Output: NameError: name 'undefined_variable' is not defined
+```
+
+*Invalid language parameter:*
+```bash
+curl -X POST http://localhost:4000/execute \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"code": "console.log(\"test\")", "language": "javascript"}'
+# Output: Invalid request: Please provide valid "code" (string) and "language" ("typescript" or "python") parameters
 ```
 
 ## 🏗️ Architecture
@@ -201,7 +211,7 @@ curl -X POST http://localhost:4000/execute/python \
 - **Language**: TypeScript
 - **Sandbox**: Daytona SDK
 - **Timeout**: Configurable (default: 60 seconds)
-- **Structure**: Language-specific endpoints with shared logic
+- **Structure**: Single unified endpoint with language selection
 
 ## 🚀 Deployment
 
