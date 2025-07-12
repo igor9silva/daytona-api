@@ -6,8 +6,8 @@ A lightweight API server built with **Elysia** and **Bun** that provides code ex
 
 - **Fast Runtime**: Built with Bun for maximum performance
 - **Type-Safe**: Full TypeScript support with Elysia
-- **Code Execution**: Execute code securely in Daytona sandboxes
-- **Timeout Protection**: 60-second execution timeout
+- **Code Execution**: Execute TypeScript and Python code securely in Daytona sandboxes
+- **Timeout Protection**: Configurable execution timeout (default: 60 seconds)
 - **Docker Ready**: Lightweight multi-stage Docker build
 - **Production Ready**: Optimized for deployment on Railway, Fly.io, etc.
 
@@ -28,6 +28,7 @@ A lightweight API server built with **Elysia** and **Bun** that provides code ex
    ```bash
    DAYTONA_API_KEY=your_daytona_api_key_here
    PORT=4000  # Optional, defaults to 4000
+   EXECUTION_TIMEOUT_SECONDS=60  # Optional, defaults to 60
    ```
 
 ## 🏃 Development
@@ -68,10 +69,25 @@ docker run -p 4000:4000 -e DAYTONA_API_KEY=your_api_key daytona-api
 ### `GET /`
 Health check endpoint that returns API information.
 
-### `POST /execute`
-Execute code in a Daytona sandbox.
+**Response**:
+```json
+{
+  "message": "Daytona Code Execution API",
+  "version": "1.0.0",
+  "endpoints": {
+    "/execute/typescript": "POST - Execute TypeScript code in Daytona sandbox",
+    "/execute/python": "POST - Execute Python code in Daytona sandbox"
+  }
+}
+```
 
-**Request Body**:
+### `POST /execute/typescript`
+Execute TypeScript code in a Daytona sandbox.
+
+### `POST /execute/python`
+Execute Python code in a Daytona sandbox.
+
+**Request Body** (same for both endpoints):
 ```json
 {
   "code": "console.log('Hello World')"
@@ -84,37 +100,35 @@ Execute code in a Daytona sandbox.
 - **Error (500)**: Returns execution error message as plain text
 
 **Output Behavior**:
-- All `console.*` methods are captured and returned
-- Multiple console calls are returned on separate lines
+- All `console.*` methods are captured and returned (TypeScript)
+- All `print()` statements are captured and returned (Python)
+- Multiple output calls are returned on separate lines
 - Objects are formatted with proper indentation
-- `console.table()` returns formatted tables
-- `console.time()` and `console.timeEnd()` work as expected
+- `console.table()` returns formatted tables (TypeScript)
+- `console.time()` and `console.timeEnd()` work as expected (TypeScript)
 - Both stdout and stderr are captured
 
 **Examples**:
 
-*Simple output:*
+*TypeScript execution:*
 ```bash
-curl -X POST http://localhost:4000/execute \
+curl -X POST http://localhost:4000/execute/typescript \
   -H "Content-Type: application/json" \
-  -d '{"code": "console.log(\"Hello from Daytona!\")"}'
-# Output: Hello from Daytona!
+  -d '{"code": "console.log(\"Hello from TypeScript!\")"}'
+# Output: Hello from TypeScript!
 ```
 
-*Multiple console calls:*
+*Python execution:*
 ```bash
-curl -X POST http://localhost:4000/execute \
+curl -X POST http://localhost:4000/execute/python \
   -H "Content-Type: application/json" \
-  -d '{"code": "console.log(\"First\"); console.warn(\"Warning\"); console.error(\"Error\")"}'
-# Output:
-# First
-# Warning  
-# Error
+  -d '{"code": "print(\"Hello from Python!\")"}'
+# Output: Hello from Python!
 ```
 
-*Objects and tables:*
+*TypeScript with objects:*
 ```bash
-curl -X POST http://localhost:4000/execute \
+curl -X POST http://localhost:4000/execute/typescript \
   -H "Content-Type: application/json" \
   -d '{"code": "console.log({name: \"test\", value: 42}); console.table([{a: 1, b: 2}])"}'
 # Output:
@@ -126,22 +140,41 @@ curl -X POST http://localhost:4000/execute \
 # └─────────┴───┴───┘
 ```
 
-*Error handling:*
+*Python with multiple prints:*
 ```bash
-curl -X POST http://localhost:4000/execute \
+curl -X POST http://localhost:4000/execute/python \
+  -H "Content-Type: application/json" \
+  -d '{"code": "print(\"First line\"); print(\"Second line\"); print(f\"Math: {2 + 2}\")"}'
+# Output:
+# First line
+# Second line
+# Math: 4
+```
+
+*Error handling (TypeScript):*
+```bash
+curl -X POST http://localhost:4000/execute/typescript \
   -H "Content-Type: application/json" \
   -d '{"code": "invalidSyntax("}'
 # Output: [eval].ts(1,13): error TS1005: ')' expected.
 ```
 
+*Error handling (Python):*
+```bash
+curl -X POST http://localhost:4000/execute/python \
+  -H "Content-Type: application/json" \
+  -d '{"code": "print(undefined_variable)"}'
+# Output: NameError: name 'undefined_variable' is not defined
+```
+
 ## 🏗️ Architecture
 
 - **Runtime**: Bun
-- **Framework**: Elysia
+- **Framework**: Elysia with plugin-based architecture
 - **Language**: TypeScript
 - **Sandbox**: Daytona SDK
-- **Timeout**: 60 seconds
-- **Structure**: Single endpoint design
+- **Timeout**: Configurable (default: 60 seconds)
+- **Structure**: Language-specific endpoints with shared logic
 
 ## 🚀 Deployment
 

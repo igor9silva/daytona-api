@@ -2,7 +2,10 @@ import { Daytona } from '@daytonaio/sdk';
 import { Sandbox } from '@daytonaio/sdk/src/Sandbox';
 import { env } from './env';
 
-export async function executeCode(code: string): Promise<string> {
+export async function executeCode(
+	code: string, //
+	language: 'typescript' | 'python',
+) {
 	//
 	let sandbox: Sandbox | null = null;
 
@@ -14,7 +17,7 @@ export async function executeCode(code: string): Promise<string> {
 		const autoStopMinutes = Math.ceil(env.EXECUTION_TIMEOUT_SECONDS / 60);
 
 		sandbox = await daytona.create({
-			language: 'typescript',
+			language: language,
 			autoStopInterval: autoStopMinutes, // use auto-stop as our timeout mechanism
 		});
 
